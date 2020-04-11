@@ -1,10 +1,15 @@
+from wordlist import WordList as wl
 from wordtable import WordTable as wt
 
-u = wt()
-u.add_word("klemmari")
-u.add_word("kissa")
-u.add_word("ketunminttu")
-u.print_table()
+wordlists = []
+for i in range(3,11):
+    wordlists.append(wl("words" + str(i)))
+
+table = wt()
+for i in wordlists:
+    table.add_word(i.get_random())
+
+table.print_table()
 print()
-u.fill_table()
-u.print_table()
+table.fill_table()
+table.print_table()
