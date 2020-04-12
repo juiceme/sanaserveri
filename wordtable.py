@@ -1,4 +1,5 @@
 import random
+import json
 
 class WordTable:
     def __init__(self):
@@ -75,6 +76,9 @@ class WordTable:
             for j in range(10):
                 if self.table[i][j] == ".":
                     self.table[i][j] = random.choice(chars)
+
+    def get_raw_table(self):
+        return json.dumps(self.table).encode('ascii')
 
     def print_table(self):
         for i in range(10):
