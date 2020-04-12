@@ -34,23 +34,30 @@ class WordTable:
             if self.table[x0][y0] == ".":
                 self.table[x0][y0] = word[0]
                 break
+        direction0 = random.randrange(4)
         for i in range(len(word)-1):
             count = 0
             while True:
                 count = count+1
-                direction = random.randrange(4)
+                direction = random.randrange(20)
+                if direction > 3:
+                    direction = direction0
                 if direction == 0:
                     x = x0-1
                     y = y0
+                    direction0 = 0
                 if direction == 1:
                     x = x0+1
                     y = y0
+                    direction0 = 1
                 if direction == 2:
                     x = x0
                     y = y0-1
+                    direction0 = 2
                 if direction == 3:
                     x = x0
                     y = y0+1
+                    direction0 = 3
                 if y>0 and y<10 and x>0 and x<10:
                     if self.table[x][y] == ".":
                         self.table[x][y] = word[i+1]
