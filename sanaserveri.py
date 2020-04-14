@@ -26,7 +26,7 @@ sessions = []
 
 def create_session():
     key = hashlib.sha1(str(time.time()+random.randrange(1000)).encode('utf-8')).hexdigest()
-    sessions.append({"key": key, "score": 0})
+    sessions.append({"key": key, "score": 0, "found_words": [], "used_vectors": []})
     return { "key": key, "status": "OK" }
 
 def get_session(key):
@@ -50,24 +50,26 @@ def handle_rest_put(path, body):
     data = json.loads(body)
     if "key" not in data:
         return json.dumps({"status": "FAIL", "error": "Invalid format"}).encode('ascii')
+    session = get_session(data["key"])
+    if session == "":
+        return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
     if path == "/checkword":
         if "word" not in data:
             return json.dumps({"status": "FAIL", "error": "Invalid format"}).encode('ascii')
-        session = get_session(data["key"])
-        if session == "":
-            return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
-        if table.check_validity(json.loads(data["word"])):
-            word = table.get_word(json.loads(data["word"]))
+        vector = json.loads(data["word"])
+        if table.check_validity(vector):
+            if vector in session["used_vectors"]:
+                return json.dumps({"status": "FAIL", "error": "Duplicate vector"}).encode('ascii')
+            word = table.get_word(vector)
             if len(word) < 3 or len(word) > 10:
                 return json.dumps({"status": "FAIL", "error": "Invalid word"}).encode('ascii')
             if wordlists[len(word)-3].is_word(word):
                 session["score"] = session["score"] + len(word) * len(word)
-                return json.dumps({"score": session["score"], "status": "OK"}).encode('ascii')
+                session["found_words"].append(word)
+                session["used_vectors"].append(vector)
+                return json.dumps({"word": word, "score": session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
     if path == "/getsessions":
-        session = get_session(data["key"])
-        if session == "":
-            return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
         return json.dumps({"sessions": sessions, "status": "OK"}).encode('ascii')
     return json.dumps({"status": "FAIL", "error": "Invalid path"}).encode('ascii')
 
