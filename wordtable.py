@@ -112,7 +112,16 @@ class WordTable:
         return True
 
     def print_table(self):
+        output_table = self.duplicate_table()
+        rounds = self.size-1
+        for i in range(int(self.size/2)):
+            for j in range(i, rounds-i):
+                swap = output_table[i][j]
+                output_table[i][j] = output_table[j][rounds-i]
+                output_table[j][rounds-i] = output_table[rounds-i][rounds-j]
+                output_table[rounds-i][rounds-j] = output_table[rounds-j][i]
+                output_table[rounds-j][i] = swap
         for i in range(self.size):
             for j in range(self.size):
-                print(self.table[i][j], end=" ")
+                print(output_table[i][j], end=" ")
             print()
