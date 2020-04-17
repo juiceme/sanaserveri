@@ -6,6 +6,7 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 from wordtable import WordTable as wt
+from wordlist import WordList as wl
 
 url = "https://localhost:8088/startsession"
 res = requests.get(url, verify=False)
@@ -25,29 +26,34 @@ if resp["status"] != "OK":
     sys.exit("Server does not give session key")
 wordtable = resp["table"]
 
-words = []
+vectors = []
 
-def solve(cell, depth, word):
+def solve(cell, depth, vector):
     if depth == 0:
-        words.append(word)
+        vectors.append(vector)
         return
     else:
-        word.append(cell)
-        solve([cell[0], cell[1]-1], depth-1, word.copy())
-        solve([cell[0], cell[1]+1], depth-1, word.copy())
-        solve([cell[0]-1, cell[1]], depth-1, word.copy())
-        solve([cell[0]+1, cell[1]], depth-1, word.copy())
+        vector.append(cell)
+        solve([cell[0], cell[1]-1], depth-1, vector.copy())
+        solve([cell[0], cell[1]+1], depth-1, vector.copy())
+        solve([cell[0]-1, cell[1]], depth-1, vector.copy())
+        solve([cell[0]+1, cell[1]], depth-1, vector.copy())
 
 table = wt()
+table.set_table(wordtable)
+
+wordlist = wl("words3")
 
 for i in range(10):
     for j in range(10):
-        word = []
-        solve([i,j], 3, word)
-        words.sort()
-        words = list(words for words,_ in itertools.groupby(words))
-        for k in words:
+        solve([i,j], 3, [])
+        vectors.sort()
+        vectors = list(vectors for vectors,_ in itertools.groupby(vectors))
+        for k in vectors:
             if table.check_validity(k):
-                url = "https://localhost:8088/checkword"
-                data = {"word": str(k), "key": sessionkey}
-                res = requests.put(url, data=json.dumps(data), verify=False)
+                word = table.get_word(k)
+                if wordlist.is_word(word):
+                    url = "https://localhost:8088/checkword"
+                    data = {"word": str(k), "key": sessionkey}
+                    res = requests.put(url, data=json.dumps(data), verify=False)
+
