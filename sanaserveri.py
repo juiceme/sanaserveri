@@ -37,13 +37,22 @@ def get_session(key):
             break
     return session
 
-def handle_rest_get(path):
-    if path == "/getwords":
-        ret = { "table": table.get_raw_table(),
-                "status": "OK" }
-        return json.dumps(ret).encode('ascii')
+def handle_rest_get(path, body):
     if path == "/startsession":
         return json.dumps(create_session()).encode('ascii')
+    if body != "":
+        data = json.loads(body)
+        if "key" not in data:
+            return json.dumps({"status": "FAIL", "error": "Invalid format"}).encode('ascii')
+        session = get_session(data["key"])
+        if session == "":
+            return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
+        if path == "/getwords":
+            ret = { "table": table.get_raw_table(),
+                    "status": "OK" }
+            return json.dumps(ret).encode('ascii')
+        if path == "/getsessions":
+            return json.dumps({"sessions": sessions, "status": "OK"}).encode('ascii')
     return json.dumps({"status": "FAIL", "error": "Invalid path"}).encode('ascii')
 
 def handle_rest_put(path, body):
@@ -69,15 +78,20 @@ def handle_rest_put(path, body):
                 session["used_vectors"].append(vector)
                 return json.dumps({"word": word, "score": session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
-    if path == "/getsessions":
-        return json.dumps({"sessions": sessions, "status": "OK"}).encode('ascii')
     return json.dumps({"status": "FAIL", "error": "Invalid path"}).encode('ascii')
 
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(handle_rest_get(self.path))
+        if "Content-Length" in self.headers:
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length)
+            response = BytesIO()
+            response.write(handle_rest_get(self.path, body))
+            self.wfile.write(response.getvalue())
+        else:
+            self.wfile.write(handle_rest_get(self.path, ""))
     def do_POST(self):
         self.send_response(200)
         self.end_headers()
