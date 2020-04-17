@@ -92,8 +92,10 @@ class MyHTTPRequestHandler(BaseHTTPRequestHandler):
         response = BytesIO()
         response.write(handle_rest_put(self.path, body))
         self.wfile.write(response.getvalue())
-
+    def log_message(self, format, *args):
+        return
+    
 httpd = HTTPServer(('localhost', 8088), MyHTTPRequestHandler)
-httpd.socket = ssl.wrap_socket(httpd.socket, keyfile="/home/juice/key.pem",
-                               certfile="/home/juice/cert.pem", server_side=True)
+httpd.socket = ssl.wrap_socket(httpd.socket, keyfile="./key.pem",
+                               certfile="./cert.pem", server_side=True)
 httpd.serve_forever()

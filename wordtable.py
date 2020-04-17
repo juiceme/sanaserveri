@@ -92,11 +92,9 @@ class WordTable:
         v1.sort()
         v1 = list(v1 for v1,_ in itertools.groupby(v1))
         if len(vector) != len(v1):
-            print("F1")
             return False
         for i in vector:
             if i[0] < 0 or i[0] > self.size-1 or i[1] < 0 or i[1] > self.size-1:
-                print("F2")
                 return False
         x0 = self.size
         y0 = self.size
@@ -105,7 +103,6 @@ class WordTable:
                 xdiff = abs(i[0] - x0)
                 ydiff = abs(i[1] - y0)
                 if xdiff + ydiff != 1:
-                    print("F3")
                     return False
             x0 = i[0]
             y0 = i[1]
