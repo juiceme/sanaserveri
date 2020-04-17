@@ -5,6 +5,8 @@ import itertools
 import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+from wordtable import WordTable as wt
+
 url = "https://localhost:8088/startsession"
 res = requests.get(url, verify=False)
 if res.status_code != 200:
@@ -36,6 +38,8 @@ def solve(cell, depth, word):
         solve([cell[0]-1, cell[1]], depth-1, word.copy())
         solve([cell[0]+1, cell[1]], depth-1, word.copy())
 
+table = wt()
+
 for i in range(10):
     for j in range(10):
         word = []
@@ -43,6 +47,7 @@ for i in range(10):
         words.sort()
         words = list(words for words,_ in itertools.groupby(words))
         for k in words:
-            url = "https://localhost:8088/checkword"
-            data = {"word": str(k), "key": sessionkey}
-            res = requests.put(url, data=json.dumps(data), verify=False)
+            if table.check_validity(k):
+                url = "https://localhost:8088/checkword"
+                data = {"word": str(k), "key": sessionkey}
+                res = requests.put(url, data=json.dumps(data), verify=False)
