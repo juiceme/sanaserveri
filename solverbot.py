@@ -43,6 +43,7 @@ table = wt()
 table.set_table(wordtable)
 
 wordlist = wl("words3")
+used_vectors = []
 
 for i in range(10):
     for j in range(10):
@@ -53,7 +54,12 @@ for i in range(10):
             if table.check_validity(k):
                 word = table.get_word(k)
                 if wordlist.is_word(word):
-                    url = "https://localhost:8088/checkword"
-                    data = {"word": str(k), "key": sessionkey}
-                    res = requests.put(url, data=json.dumps(data), verify=False)
-
+                    if k not in used_vectors:
+                        url = "https://localhost:8088/checkword"
+                        data = {"word": str(k), "key": sessionkey}
+                        res = requests.put(url, data=json.dumps(data), verify=False)
+                        if res.status_code != 200:
+                            sys.exit("Cannot connect to the server")
+                        resp = json.loads(res._content.decode('utf-8'))
+                        if resp["status"] == "OK":
+                            used_vectors.append(k)
