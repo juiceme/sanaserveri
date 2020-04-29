@@ -38,7 +38,7 @@ The client requests the table of characters prepared by the server. This operati
 client                                            server
 ------                                            ------
 GET https://server:port/getwords       -->
-     { key: <RANDOM_SHA1SUM_40_CHARS> }
+     { "key": <RANDOM_SHA1SUM_40_CHARS> }
                                            <--   { table: [ ["O", "H", "J", "H", "C", "Y", "K", "G", "P", "B"],
 					                    ["X", "B", "B", "Q", "X", "S", "N", "D", "V", "R"],
 							    ["A", "S", "U", "M", "L", "U", "E", "L", "E", "I"],
@@ -50,6 +50,110 @@ GET https://server:port/getwords       -->
 							    ["O", "U", "S", "Z", "W", "L", "S", "T", "L", "Y"],
 							    ["T", "S", "H", "L", "G", "H", "A", "J", "Y", "C"] ],
 				                   status: "OK" }
+```
+
+### Getting statistics
+
+The client requests the statistics from the server. This operation needs the session key.
+
+```
+client                                            server
+------                                            ------
+GET https://server:port/getstatistics  -->
+     { "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "statistics": { "score": 41,
+								   "found_words": [ "YACHT",
+								                    "LUNG" ],
+								   "used_vectors": [ [ [0, 2], [1, 2], [2, 2], [3, 2], [4, 2] ],
+								                     [ [9, 0], [8, 0], [7, 0], [6, 0] ] ] },
+						  "status": "OK"}
+```
+
+### Getting current sessions
+
+The client requests the current sessions on the server. This operation needs the session key and prior authorization as an administrator session.
+
+```
+client                                            server
+------                                            ------
+GET https://server:port/getsessions    -->
+     { "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "sessions": [ { "key": "25723e53ac6c1f57550432c42e8e1487dbfdd95d",
+					                           "score": 0,
+								   "found_words": [],
+								   "used_vectors": [] },
+								 { "key": "2f7e3ec66b90eeca0fdb638cff3b7ab621bb361a",
+								   "score": 41,
+								   "found_words": [ "LUNG",
+								                    "YACHT"],
+								   "used_vectors": [ [ [9,0], [8,0], [7,0], [6,0] ],
+								                     [ [0,2], [1,2], [2,2], [3,2], [4,2] ] ] },
+						   "status": "OK"}
+
+
+client                                            server
+------                                            ------
+GET https://server:port/getsessions    -->
+     { "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "status": "FAIL",
+					           "error": "No priviliges" }
+```
+
+### Sending a word to be checked
+
+The client sends the vector of coordinates to the server. This operation needs the session key. The server checks the vector for validity and content, and if a valid word is found from vocabulary the statistics of the session are updated.
+
+```
+client                                            server
+------                                            ------
+PUT https://server:port/checkword      -->
+     { "word": "[[8,9],[8,8],[8,7],[8,6],[8,5],[8,4],[8,3]]"
+     "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "status": "FAIL",
+					           "error": "Not a word" }
+
+
+client                                            server
+------                                            ------
+PUT https://server:port/checkword      -->
+     { "word": "[[6,7],[6,6],[6,5],[7,5],[7,4]]"
+       "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "word": "IONIC",
+					           "score": 25,
+						   "status": "OK" }
+
+
+client                                            server
+------                                            ------
+PUT https://server:port/checkword      -->
+     { "word": "[[6,7],[6,6],[6,5],[7,5],[7,4]]"
+       "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "status": "FAIL",
+					           "error": "Duplicate vector" }
+```
+
+### Logging in as a named user
+
+The client sends an username and a hashed password to the server. This operation needs the session key. If the username is found, the password hash is checked and login granted. If username is not found, an new user is created and the password hash stored along with the username.
+
+```
+client                                            server
+------                                            ------
+PUT https://server:port/login          -->
+     { "username": <username>
+       "password": <SHA1SUM_40_CHARS>
+       "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "status": "OK" }
+
+
+client                                            server
+------                                            ------
+PUT https://server:port/login          -->
+     { "username": <username>
+       "password": <SHA1SUM_40_CHARS>
+       "key": <RANDOM_SHA1SUM_40_CHARS> }
+                                           <--   { "status": "FAIL",
+					           "error": "Invalid password" }
 ```
 
 ## License
