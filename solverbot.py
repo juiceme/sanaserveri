@@ -18,7 +18,7 @@ if resp["status"] != "OK":
 sessionkey = resp["key"]
 
 url = "https://localhost:8088/getwords"
-res = requests.get(url, verify=False)
+res = requests.get(url, data=json.dumps({"key": sessionkey}), verify=False)
 if res.status_code != 200:
     sys.exit("Cannot connect to the server")
 resp = json.loads(res._content.decode('utf-8'))
