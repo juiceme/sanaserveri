@@ -23,6 +23,7 @@ table.fill_table()
 table.print_table()
 
 sessions = []
+users = []
 
 def create_session():
     key = hashlib.sha1(str(time.time()+random.randrange(1000)).encode('utf-8')).hexdigest()
@@ -36,6 +37,16 @@ def get_session(key):
             session = i
             break
     return session
+
+def get_user(username, password):
+    for i in users:
+        if i["username"] == username:
+            if i["password"] == password:
+                return True
+            else:
+                return False
+    users.append({"username": username, "password": password})
+    return True
 
 def handle_rest_get(path, body):
     if path == "/startsession":
@@ -51,8 +62,19 @@ def handle_rest_get(path, body):
             ret = { "table": table.get_raw_table(),
                     "status": "OK" }
             return json.dumps(ret).encode('ascii')
+        if path == "/getstatistics":
+            return json.dumps({"statistics": {"score": session["score"],
+                                              "found_words": session["found_words"],
+                                              "used_vectors": session["used_vectors"]},
+                               "status": "OK"}).encode('ascii')
         if path == "/getsessions":
-            return json.dumps({"sessions": sessions, "status": "OK"}).encode('ascii')
+            if "username" not in session:
+                return json.dumps({"status": "FAIL", "error": "Not logged in"}).encode('ascii')
+            else:
+                if session["username"] != "Admin":
+                    return json.dumps({"status": "FAIL", "error": "No priviliges"}).encode('ascii')
+                else:
+                    return json.dumps({"sessions": sessions, "status": "OK"}).encode('ascii')
     return json.dumps({"status": "FAIL", "error": "Invalid path"}).encode('ascii')
 
 def handle_rest_put(path, body):
@@ -78,6 +100,18 @@ def handle_rest_put(path, body):
                 session["used_vectors"].append(vector)
                 return json.dumps({"word": word, "score": session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
+    if path == "/login":
+        if "username" not in data:
+            return json.dumps({"status": "FAIL", "error": "No username"}).encode('ascii')
+        username = data["username"]
+        if "password" not in data:
+            return json.dumps({"status": "FAIL", "error": "No password"}).encode('ascii')
+        password = data["password"]
+        if get_user(username, password):
+            session["username"] = username
+            return json.dumps({"status": "OK"}).encode('ascii')
+        else:
+            return json.dumps({"status": "FAIL", "error": "Invalid password"}).encode('ascii')
     return json.dumps({"status": "FAIL", "error": "Invalid path"}).encode('ascii')
 
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
