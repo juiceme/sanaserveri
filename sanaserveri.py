@@ -88,17 +88,20 @@ def handle_rest_put(path, body):
         if "word" not in data:
             return json.dumps({"status": "FAIL", "error": "Invalid format"}).encode('ascii')
         vector = json.loads(data["word"])
-        if table.check_validity(vector):
-            if vector in session["used_vectors"]:
-                return json.dumps({"status": "FAIL", "error": "Duplicate vector"}).encode('ascii')
-            word = table.get_word(vector)
-            if len(word) < 3 or len(word) > 10:
-                return json.dumps({"status": "FAIL", "error": "Invalid word"}).encode('ascii')
-            if wordlists[len(word)-3].is_word(word):
-                session["score"] = session["score"] + len(word) * len(word)
-                session["found_words"].append(word)
-                session["used_vectors"].append(vector)
-                return json.dumps({"word": word, "score": session["score"], "status": "OK"}).encode('ascii')
+        if not table.check_validity(vector):
+            return json.dumps({"status": "FAIL", "error": "Invalid word vector"}).encode('ascii')
+        if vector in session["used_vectors"]:
+            return json.dumps({"status": "FAIL", "error": "Duplicate word vector"}).encode('ascii')
+        word = table.get_word(vector)
+        if len(word) < 3:
+            return json.dumps({"status": "FAIL", "error": "Too short word"}).encode('ascii')
+        if len(word) > 10:
+            return json.dumps({"status": "FAIL", "error": "Too long word"}).encode('ascii')
+        if wordlists[len(word)-3].is_word(word):
+            session["score"] = session["score"] + len(word) * len(word)
+            session["found_words"].append(word)
+            session["used_vectors"].append(vector)
+            return json.dumps({"word": word, "score": session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
     if path == "/login":
         if "username" not in data:
