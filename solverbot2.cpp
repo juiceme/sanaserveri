@@ -1,6 +1,6 @@
 /*
  * compile with:
- * g++ -Wall -I/opt/curl/include -I/opt/libxml/include/libxml2 solverbot2.cpp -o solverbot2 -L/opt/curl/lib -L/opt/libxml/lib -lcurl
+ * g++ -Wall -I/opt/curl/include solverbot2.cpp -o solverbot2 -L/opt/curl/lib -lcurl
  *
  */
 
