@@ -114,11 +114,19 @@ def handle_rest_put(path, body):
         if "password" not in data:
             return json.dumps({"status": "FAIL", "error": "No password"}).encode('ascii')
         password = data["password"]
-        if get_user(username, password):
+        if database.login(username, password, session["key"]):
             session["username"] = username
             return json.dumps({"status": "OK"}).encode('ascii')
+#        if get_user(username, password):
+#            session["username"] = username
+#            return json.dumps({"status": "OK"}).encode('ascii')
         else:
             return json.dumps({"status": "FAIL", "error": "Invalid password"}).encode('ascii')
+    if path == "/logout":
+        if database.logout(session["key"]):
+            return json.dumps({"status": "OK"}).encode('ascii')
+        else:
+            return json.dumps({"status": "FAIL", "error": "Not logged in"}).encode('ascii')
     return json.dumps({"status": "FAIL", "error": "Invalid path"}).encode('ascii')
 
 class MyHTTPRequestHandler(BaseHTTPRequestHandler):
