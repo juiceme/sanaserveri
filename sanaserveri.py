@@ -5,10 +5,10 @@ import json
 import hashlib
 import time
 import random
-import mysql.connector as mariadb
 
 from wordlist import WordList as wl
 from wordtable import WordTable as wt
+from database import Database as db
 
 wordlists = []
 for i in range(3,11):
@@ -18,13 +18,12 @@ table = wt()
 for i in wordlists:
     table.add_word(i.get_random())
 
+database = db()
+
 table.print_table()
 print()
 table.fill_table()
 table.print_table()
-
-mariadb_connection = mariadb.connect(user='sanaserveri', password='54n453rv3r1', database='sanaserveri', host='toosa')
-cursor = mariadb_connection.cursor()
 
 sessions = []
 users = []
@@ -105,17 +104,7 @@ def handle_rest_put(path, body):
             session["score"] = session["score"] + len(word) * len(word)
             session["found_words"].append(word)
             session["used_vectors"].append(vector)
-            try:
-                cursor.execute("select id from highscores where username like %s", (session["key"],))
-                records = cursor.fetchall()
-                if cursor.rowcount == 0:
-                    cursor.execute("insert into highscores (username, score) values (%s,%s)", (session["key"], session["score"]))
-                    mariadb_connection.commit()
-                else:
-                    cursor.execute("update highscores set score=%s where username=%s ", (session["score"], session["key"]))
-                    mariadb_connection.commit()
-            except mariadb.Error as error:
-                print("Error: {}".format(error))
+            database.update_highscore(session["key"], session["score"])
             return json.dumps({"word": word, "score": session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
     if path == "/login":
