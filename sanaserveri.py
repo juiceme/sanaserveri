@@ -25,67 +25,84 @@ print()
 table.fill_table()
 table.print_table()
 
-sessions = []
-users = []
+class Session:
+    def __init__(self):
+        self.sessions = []
 
-def create_session():
-    key = hashlib.sha1(str(time.time()+random.randrange(1000)).encode('utf-8')).hexdigest()
-    sessions.append({"key": key, "score": 0, "found_words": [], "used_vectors": []})
-    return { "key": key, "status": "OK" }
+    def create(self):
+        key = hashlib.sha1(str(time.time()+random.randrange(1000)).encode('utf-8')).hexdigest()
+        self.sessions.append({"key": key, "score": 0, "found_words": [], "used_vectors": [], "username": ""})
+        return { "key": key, "status": "OK" }
 
-def get_session(key):
-    session = ""
-    for i in sessions:
-        if i["key"] == key:
-            session = i
-            break
-    return session
-
-def get_user(username, password):
-    for i in users:
-        if i["username"] == username:
-            if i["password"] == password:
+    def delete(self, key):
+        for i in self.sessions:
+            if i["key"] == key:
+                self.sessions.remove(i)
                 return True
-            else:
-                return False
-    users.append({"username": username, "password": password})
-    return True
+        return False
+
+    def get(self, key):
+        for i in self.sessions:
+            if i["key"] == key:
+                return i
+        return False
+
+    def set_user(self, key, username):
+        for i in self.sessions:
+            if i["key"] == key:
+                i["username"] = username
+                return True
+        return False
+
+    def dump(self):
+        return self.sessions
+
+
+session = Session()
 
 def handle_rest_get(path, body):
     if path == "/startsession":
-        return json.dumps(create_session()).encode('ascii')
+        return json.dumps(session.create()).encode('ascii')
     if body != "":
         data = json.loads(body)
         if "key" not in data:
             return json.dumps({"status": "FAIL", "error": "Invalid format"}).encode('ascii')
-        session = get_session(data["key"])
-        if session == "":
+        current_session = session.get(data["key"])
+        if current_session == False:
             return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
+        if path == "/stopsession":
+            if current_session["username"] != "":
+                if database.logout(current_session["key"]):
+                    current_session["username"] = ""
+                else:
+                    print("Problem logging out user")
+            if session.delete(current_session["key"]):
+                return json.dumps({"status": "OK"}).encode('ascii')
+            else:
+                return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
         if path == "/getwords":
-            ret = { "table": table.get_raw_table(),
-                    "status": "OK" }
-            return json.dumps(ret).encode('ascii')
+            return json.dumps({ "table": table.get_raw_table(), "status": "OK" }).encode('ascii')
         if path == "/getstatistics":
-            return json.dumps({"statistics": {"score": session["score"],
-                                              "found_words": session["found_words"],
-                                              "used_vectors": session["used_vectors"]},
+            return json.dumps({"statistics": {"score": current_session["score"],
+                                              "found_words": current_session["found_words"],
+                                              "used_vectors": current_session["used_vectors"]},
                                "status": "OK"}).encode('ascii')
         if path == "/getsessions":
-            if "username" not in session:
+            if current_session["username"] == "":
                 return json.dumps({"status": "FAIL", "error": "Not logged in"}).encode('ascii')
             else:
-                if session["username"] != "Admin":
+                if current_session["username"] != "Admin":
                     return json.dumps({"status": "FAIL", "error": "No priviliges"}).encode('ascii')
                 else:
-                    return json.dumps({"sessions": sessions, "status": "OK"}).encode('ascii')
+                    return json.dumps({"sessions": session.dump(), "status": "OK"}).encode('ascii')
     return json.dumps({"status": "FAIL", "error": "Invalid path"}).encode('ascii')
 
 def handle_rest_put(path, body):
     data = json.loads(body)
     if "key" not in data:
         return json.dumps({"status": "FAIL", "error": "Invalid format"}).encode('ascii')
-    session = get_session(data["key"])
-    if session == "":
+    current_session = session.get(data["key"])
+    if current_session == False:
         return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
     if path == "/checkword":
         if "word" not in data:
@@ -93,7 +110,7 @@ def handle_rest_put(path, body):
         vector = json.loads(data["word"])
         if not table.check_validity(vector):
             return json.dumps({"status": "FAIL", "error": "Invalid word vector"}).encode('ascii')
-        if vector in session["used_vectors"]:
+        if vector in current_session["used_vectors"]:
             return json.dumps({"status": "FAIL", "error": "Duplicate word vector"}).encode('ascii')
         word = table.get_word(vector)
         if len(word) < 3:
@@ -101,11 +118,11 @@ def handle_rest_put(path, body):
         if len(word) > 10:
             return json.dumps({"status": "FAIL", "error": "Too long word"}).encode('ascii')
         if wordlists[len(word)-3].is_word(word):
-            session["score"] = session["score"] + len(word) * len(word)
-            session["found_words"].append(word)
-            session["used_vectors"].append(vector)
-            database.update_highscore(session["key"], session["score"])
-            return json.dumps({"word": word, "score": session["score"], "status": "OK"}).encode('ascii')
+            current_session["score"] = current_session["score"] + len(word) * len(word)
+            current_session["found_words"].append(word)
+            current_session["used_vectors"].append(vector)
+            database.update_highscore(current_session["key"], current_session["score"])
+            return json.dumps({"word": word, "score": current_session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
     if path == "/login":
         if "username" not in data:
@@ -114,16 +131,16 @@ def handle_rest_put(path, body):
         if "password" not in data:
             return json.dumps({"status": "FAIL", "error": "No password"}).encode('ascii')
         password = data["password"]
-        if database.login(username, password, session["key"]):
-            session["username"] = username
+        if current_session["username"] != "":
+            return json.dumps({"status": "FAIL", "error": "Already logged in"}).encode('ascii')
+        if database.login(username, password, current_session["key"]):
+            current_session["username"] = username
             return json.dumps({"status": "OK"}).encode('ascii')
-#        if get_user(username, password):
-#            session["username"] = username
-#            return json.dumps({"status": "OK"}).encode('ascii')
         else:
             return json.dumps({"status": "FAIL", "error": "Invalid password"}).encode('ascii')
     if path == "/logout":
-        if database.logout(session["key"]):
+        if database.logout(current_session["key"]):
+            current_session["username"] = ""
             return json.dumps({"status": "OK"}).encode('ascii')
         else:
             return json.dumps({"status": "FAIL", "error": "Not logged in"}).encode('ascii')
