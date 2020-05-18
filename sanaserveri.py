@@ -34,12 +34,8 @@ class Session:
         self.sessions.append({"key": key, "score": 0, "found_words": [], "used_vectors": [], "username": ""})
         return { "key": key, "status": "OK" }
 
-    def delete(self, key):
-        for i in self.sessions:
-            if i["key"] == key:
-                self.sessions.remove(i)
-                return True
-        return False
+    def delete(self, session):
+        self.sessions.remove(session)
 
     def get(self, key):
         for i in self.sessions:
@@ -47,12 +43,20 @@ class Session:
                 return i
         return False
 
-    def set_user(self, key, username):
-        for i in self.sessions:
-            if i["key"] == key:
-                i["username"] = username
-                return True
-        return False
+    def set_user(self, session, username):
+        session["username"] = username
+
+    def user_is_loggedin(self, session):
+        if session["username"] != "":
+            return True
+        else:
+            return False
+
+    def user_is_admin(self, session):
+        if session["username"] == "Admin":
+            return True
+        else:
+            return False
 
     def dump(self):
         return self.sessions
@@ -71,15 +75,13 @@ def handle_rest_get(path, body):
         if current_session == False:
             return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
         if path == "/stopsession":
-            if current_session["username"] != "":
+            if session.user_is_loggedin(current_session):
                 if database.logout(current_session["key"]):
-                    current_session["username"] = ""
+                    session.set_user(current_session, "")
                 else:
                     print("Problem logging out user")
-            if session.delete(current_session["key"]):
-                return json.dumps({"status": "OK"}).encode('ascii')
-            else:
-                return json.dumps({"status": "FAIL", "error": "Unknown session"}).encode('ascii')
+            session.delete(current_session)
+            return json.dumps({"status": "OK"}).encode('ascii')
         if path == "/getwords":
             return json.dumps({ "table": table.get_raw_table(), "status": "OK" }).encode('ascii')
         if path == "/getstatistics":
@@ -88,10 +90,10 @@ def handle_rest_get(path, body):
                                               "used_vectors": current_session["used_vectors"]},
                                "status": "OK"}).encode('ascii')
         if path == "/getsessions":
-            if current_session["username"] == "":
+            if not session.user_is_loggedin(current_session):
                 return json.dumps({"status": "FAIL", "error": "Not logged in"}).encode('ascii')
             else:
-                if current_session["username"] != "Admin":
+                if not session.user_is_admin(current_session):
                     return json.dumps({"status": "FAIL", "error": "No priviliges"}).encode('ascii')
                 else:
                     return json.dumps({"sessions": session.dump(), "status": "OK"}).encode('ascii')
@@ -121,7 +123,8 @@ def handle_rest_put(path, body):
             current_session["score"] = current_session["score"] + len(word) * len(word)
             current_session["found_words"].append(word)
             current_session["used_vectors"].append(vector)
-            database.update_highscore(current_session["key"], current_session["score"])
+            if session.user_is_loggedin(current_session):
+                database.update_highscore(current_session["username"], current_session["score"])
             return json.dumps({"word": word, "score": current_session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
     if path == "/login":
@@ -131,16 +134,16 @@ def handle_rest_put(path, body):
         if "password" not in data:
             return json.dumps({"status": "FAIL", "error": "No password"}).encode('ascii')
         password = data["password"]
-        if current_session["username"] != "":
+        if session.user_is_loggedin(current_session):
             return json.dumps({"status": "FAIL", "error": "Already logged in"}).encode('ascii')
         if database.login(username, password, current_session["key"]):
-            current_session["username"] = username
+            session.set_user(current_session, username)
             return json.dumps({"status": "OK"}).encode('ascii')
         else:
             return json.dumps({"status": "FAIL", "error": "Invalid password"}).encode('ascii')
     if path == "/logout":
         if database.logout(current_session["key"]):
-            current_session["username"] = ""
+            session.set_user(current_session, "")
             return json.dumps({"status": "OK"}).encode('ascii')
         else:
             return json.dumps({"status": "FAIL", "error": "Not logged in"}).encode('ascii')
