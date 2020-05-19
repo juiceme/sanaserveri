@@ -4,6 +4,7 @@ import ssl
 import json
 import hashlib
 import time
+import _thread
 import random
 
 from wordlist import WordList as wl
@@ -14,16 +15,35 @@ wordlists = []
 for i in range(3,11):
     wordlists.append(wl("words" + str(i)))
 
-table = wt()
-for i in wordlists:
-    table.add_word(i.get_random())
-
 database = db()
 
-table.print_table()
-print()
-table.fill_table()
-table.print_table()
+table = wt()
+
+def execute_periodically(period, function):
+    def timer_tick():
+        t = time.time()
+        count = 0
+        while True:
+            count += 1
+            yield max(t + count*period - time.time(), 0)
+    tick = timer_tick()
+    while True:
+        function()
+        time.sleep(next(tick))
+
+def refresh_wordtable():
+    global table
+    table = wt()
+    for i in wordlists:
+        table.add_word(i.get_random())
+
+    table.print_table()
+    print()
+    table.fill_table()
+    table.print_table()
+    print()
+
+_thread.start_new_thread(execute_periodically, (10, refresh_wordtable))
 
 class Session:
     def __init__(self):
