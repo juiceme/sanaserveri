@@ -47,6 +47,20 @@ int main(int argc, char *argv[])
   auto sessionkey = jii["key"].get<std::string>();
   std::cout << "Got session key: " << sessionkey << "\n";
 
+  url = "https://localhost:8088/login";
+  jii = {{"username", "solverbot2"},{"password", "50lver80t"},{"key", sessionkey}};
+  data = jii.dump();
+  if(rest_api.put((char *)(url.c_str()), (char *)data.c_str()) == false) {
+    fprintf(stderr, "Connection failed\n");
+    exit(EXIT_FAILURE);
+  }
+  jii = json::parse(rest_api.read());
+  if(jii["status"] != "OK") {
+    fprintf(stderr, "Failed to log in\n");
+    exit(EXIT_FAILURE);
+  }
+  std::cout << "Logged in to server\n";
+
   url = "https://localhost:8088/getwords";
   jii = {{"key", sessionkey}};
   data = jii.dump();
@@ -97,6 +111,20 @@ int main(int argc, char *argv[])
       }
     }
   }
+
+  url = "https://localhost:8088/stopsession";
+  jii = {{"key", sessionkey}};
+  data = jii.dump();
+  if(rest_api.get((char *)(url.c_str()), (char *)data.c_str()) == false) {
+    fprintf(stderr, "Connection failed\n");
+    exit(EXIT_FAILURE);
+  }
+  jii = json::parse(rest_api.read());
+  if(jii["status"] != "OK") {
+    fprintf(stderr, "Failed to stop session\n");
+    exit(EXIT_FAILURE);
+  }
+  std::cout << "Stopped session\n";
    
   return EXIT_SUCCESS;
 }
