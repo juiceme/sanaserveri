@@ -31,20 +31,6 @@ def execute_periodically(period, function):
         function()
         time.sleep(next(tick))
 
-def refresh_wordtable():
-    global table
-    table = wt()
-    for i in wordlists:
-        table.add_word(i.get_random())
-
-    table.print_table()
-    print()
-    table.fill_table()
-    table.print_table()
-    print()
-
-_thread.start_new_thread(execute_periodically, (10, refresh_wordtable))
-
 class Session:
     def __init__(self):
         self.sessions = []
@@ -78,11 +64,29 @@ class Session:
         else:
             return False
 
+    def clear_used_vectors(self):
+        for i in self.sessions:
+            i["used_vectors"] = []
+
     def dump(self):
         return self.sessions
 
-
 session = Session()
+
+def refresh_wordtable():
+    global table
+    table = wt()
+    session.clear_used_vectors()
+    for i in wordlists:
+        table.add_word(i.get_random())
+
+    table.print_table()
+    print()
+    table.fill_table()
+    table.print_table()
+    print()
+
+_thread.start_new_thread(execute_periodically, (10, refresh_wordtable))
 
 def handle_rest_get(path, body):
     if path == "/startsession":
