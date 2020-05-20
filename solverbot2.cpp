@@ -111,20 +111,6 @@ int main(int argc, char *argv[])
       }
     }
   }
-
-  url = "https://localhost:8088/stopsession";
-  jii = {{"key", sessionkey}};
-  data = jii.dump();
-  if(rest_api.get((char *)(url.c_str()), (char *)data.c_str()) == false) {
-    fprintf(stderr, "Connection failed\n");
-    exit(EXIT_FAILURE);
-  }
-  jii = json::parse(rest_api.read());
-  if(jii["status"] != "OK") {
-    fprintf(stderr, "Failed to stop session\n");
-    exit(EXIT_FAILURE);
-  }
-  std::cout << "Stopped session\n";
    
   return EXIT_SUCCESS;
 }
