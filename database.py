@@ -56,3 +56,14 @@ class Database:
                 self.db_connection.commit()
         except mariadb.Error as error:
             print("Error: {}".format(error))
+
+    def get_highscore(self, user):
+        try:
+            self.cursor.execute("select score from highscores where username like %s", (user,))
+            records = self.cursor.fetchall()
+            if self.cursor.rowcount == 0:
+                return 0
+            else:
+                return records[0][0]
+        except mariadb.Error as error:
+            print("Error: {}".format(error))

@@ -17,8 +17,6 @@ for i in range(3,11):
 
 database = db()
 
-table = wt()
-
 def execute_periodically(period, function):
     def timer_tick():
         t = time.time()
@@ -37,7 +35,12 @@ class Session:
 
     def create(self):
         key = hashlib.sha1(str(time.time()+random.randrange(1000)).encode('utf-8')).hexdigest()
-        self.sessions.append({"key": key, "score": 0, "found_words": [], "used_vectors": [], "username": ""})
+        self.sessions.append({ "key": key,
+                               "score": 0,
+                               "highscore": 0,
+                               "found_words": [],
+                               "used_vectors": [],
+                               "username": "" })
         return { "key": key, "status": "OK" }
 
     def delete(self, session):
@@ -68,6 +71,22 @@ class Session:
         for i in self.sessions:
             i["used_vectors"] = []
 
+    def load_highscores(self):
+        for i in self.sessions:
+            if self.user_is_loggedin(i):
+                i["highscore"] = database.get_highscore(i["username"])
+
+    def update_highscores(self):
+        for i in self.sessions:
+            if self.user_is_loggedin(i):
+                print(i["score"])
+                print(i["highscore"])
+                if i["score"] > i["highscore"]:
+                    database.update_highscore(i["username"], i["score"])
+    def clear_scores(self):
+        for i in self.sessions:
+            i["score"] = 0
+
     def dump(self):
         return self.sessions
 
@@ -76,7 +95,10 @@ session = Session()
 def refresh_wordtable():
     global table
     table = wt()
+    session.load_highscores()
+    session.update_highscores()
     session.clear_used_vectors()
+    session.clear_scores()
     for i in wordlists:
         table.add_word(i.get_random())
 
@@ -147,8 +169,6 @@ def handle_rest_put(path, body):
             current_session["score"] = current_session["score"] + len(word) * len(word)
             current_session["found_words"].append(word)
             current_session["used_vectors"].append(vector)
-            if session.user_is_loggedin(current_session):
-                database.update_highscore(current_session["username"], current_session["score"])
             return json.dumps({"word": word, "score": current_session["score"], "status": "OK"}).encode('ascii')
         return json.dumps({"status": "FAIL", "error": "Not a word"}).encode('ascii')
     if path == "/login":
