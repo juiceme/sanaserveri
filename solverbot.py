@@ -17,6 +17,16 @@ if resp["status"] != "OK":
     sys.exit("Server does not give session key")
 sessionkey = resp["key"]
 
+url = "https://localhost:8088/login"
+res = requests.put(url, verify=False, data=json.dumps({ "key": sessionkey,
+                                                        "username": "solverbot",
+                                                        "password": "50lv3r80t" }))
+if res.status_code != 200:
+    sys.exit("Cannot connect to the server")
+resp = json.loads(res._content.decode('utf-8'))
+if resp["status"] != "OK":
+    sys.exit("Could not login")
+
 url = "https://localhost:8088/getwords"
 res = requests.get(url, data=json.dumps({"key": sessionkey}), verify=False)
 if res.status_code != 200:
@@ -24,7 +34,7 @@ if res.status_code != 200:
 resp = json.loads(res._content.decode('utf-8'))
 if resp["status"] != "OK":
     sys.exit("Server does not give session key")
-wordtable = resp["table"]
+wordtable = resp["table"]["table"]
 
 vectors = []
 
@@ -56,6 +66,7 @@ for i in range(10):
                 if wordlist.is_word(word):
                     if k not in used_vectors:
                         url = "https://localhost:8088/checkword"
+                        print(str(k) + " - " + word)
                         data = {"word": str(k), "key": sessionkey}
                         res = requests.put(url, data=json.dumps(data), verify=False)
                         if res.status_code != 200:
@@ -63,3 +74,4 @@ for i in range(10):
                         resp = json.loads(res._content.decode('utf-8'))
                         if resp["status"] == "OK":
                             used_vectors.append(k)
+                        print("Got status: " + json.dumps(resp))

@@ -46,7 +46,7 @@ def refresh_wordtable():
     table.print_table()
     print()
 
-_thread.start_new_thread(execute_periodically, (10, refresh_wordtable))
+_thread.start_new_thread(execute_periodically, (60, refresh_wordtable))
 
 def handle_rest_get(path, body):
     if path == "/startsession":

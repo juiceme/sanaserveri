@@ -1,10 +1,12 @@
 import random
+import time
 import itertools
 
 class WordTable:
     def __init__(self):
         self.size = 10
         self.table = self.create_table()
+        self.start_time = str(time.time()).split('.')[0]
 
     def create_table(self):
         table = []
@@ -79,7 +81,8 @@ class WordTable:
                     self.table[i][j] = random.choice(chars)
 
     def get_raw_table(self):
-        return self.table
+        remaining_time = 60 - (int(str(time.time()).split('.')[0]) - int(self.start_time))
+        return {"table": self.table, "round": self.start_time, "remaining": remaining_time}
 
     def get_word(self, vector):
         word = ""

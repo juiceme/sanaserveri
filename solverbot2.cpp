@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
     fprintf(stderr, "Failed to get wordtable\n");
     exit(EXIT_FAILURE);
   }
-  auto wordtable =  jii["table"];
+  auto wordtable =  jii["table"]["table"];
   std::cout << "Got wordtable: " << wordtable << "\n";
 
   char* newtable = (char*) malloc(sizeof(char[10][10])+1);
