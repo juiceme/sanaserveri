@@ -2,7 +2,6 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from io import BytesIO
 import ssl
 import json
-import hashlib
 import time
 import _thread
 import random
@@ -10,12 +9,14 @@ import random
 from wordlist import WordList as wl
 from wordtable import WordTable as wt
 from database import Database as db
+from session import Session as se
 
 wordlists = []
 for i in range(3,11):
     wordlists.append(wl("words" + str(i)))
 
 database = db()
+session = se()
 
 def execute_periodically(period, function):
     def timer_tick():
@@ -28,69 +29,6 @@ def execute_periodically(period, function):
     while True:
         function()
         time.sleep(next(tick))
-
-class Session:
-    def __init__(self):
-        self.sessions = []
-
-    def create(self):
-        key = hashlib.sha1(str(time.time()+random.randrange(1000)).encode('utf-8')).hexdigest()
-        self.sessions.append({ "key": key,
-                               "score": 0,
-                               "highscore": 0,
-                               "found_words": [],
-                               "used_vectors": [],
-                               "username": "" })
-        return { "key": key, "status": "OK" }
-
-    def delete(self, session):
-        self.sessions.remove(session)
-
-    def get(self, key):
-        for i in self.sessions:
-            if i["key"] == key:
-                return i
-        return False
-
-    def set_user(self, session, username):
-        session["username"] = username
-
-    def user_is_loggedin(self, session):
-        if session["username"] != "":
-            return True
-        else:
-            return False
-
-    def user_is_admin(self, session):
-        if session["username"] == "Admin":
-            return True
-        else:
-            return False
-
-    def clear_used_vectors(self):
-        for i in self.sessions:
-            i["used_vectors"] = []
-
-    def load_highscores(self):
-        for i in self.sessions:
-            if self.user_is_loggedin(i):
-                i["highscore"] = database.get_highscore(i["username"])
-
-    def update_highscores(self):
-        for i in self.sessions:
-            if self.user_is_loggedin(i):
-                print(i["score"])
-                print(i["highscore"])
-                if i["score"] > i["highscore"]:
-                    database.update_highscore(i["username"], i["score"])
-    def clear_scores(self):
-        for i in self.sessions:
-            i["score"] = 0
-
-    def dump(self):
-        return self.sessions
-
-session = Session()
 
 def refresh_wordtable():
     global table
